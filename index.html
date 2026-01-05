@@ -1,0 +1,83 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JPG to PDF Converter</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 40px; background: #f8fafc; color: #111; }
+    h1 { text-align: center; }
+    .upload-box { border: 2px dashed #4f46e5; border-radius: 12px; padding: 30px; text-align: center; cursor: pointer; background: #fff; }
+    .upload-box:hover { background: #f1f5ff; }
+    input[type=file] { display: none; }
+    button { margin-top: 20px; padding: 12px 20px; font-size: 16px; background: #4f46e5; color: #fff; border: none; border-radius: 8px; cursor: pointer; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+  <h1>JPG to PDF Converter</h1>
+  <label class="upload-box" for="fileInput">
+    Click to upload JPG/PNG images
+  </label>
+  <input type="file" id="fileInput" multiple accept="image/*">
+  <button id="convertBtn" disabled>Convert to PDF</button>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script>
+    const input = document.getElementById('fileInput');
+    const convertBtn = document.getElementById('convertBtn');
+    let images = [];
+
+
+    input.addEventListener('change', (e) => {
+      images = Array.from(e.target.files).slice(0, 20);
+      convertBtn.disabled = images.length === 0;
+    });
+
+
+    convertBtn.addEventListener('click', async () => {
+      if (!images.length) return;
+      convertBtn.disabled = true;
+      convertBtn.innerText = 'Converting...';
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF();
+
+
+      for (let i = 0; i < images.length; i++) {
+        const file = images[i];
+        const reader = new FileReader();
+
+
+        await new Promise((resolve) => {
+          reader.onload = function(e) {
+            const imgData = e.target.result;
+            const img = new Image();
+            img.src = imgData;
+            img.onload = function() {
+              const pageWidth = pdf.internal.pageSize.getWidth();
+              const pageHeight = pdf.internal.pageSize.getHeight();
+              const ratio = Math.min(pageWidth / img.width, pageHeight / img.height);
+              const imgWidth = img.width * ratio;
+              const imgHeight = img.height * ratio;
+              const x = (pageWidth - imgWidth) / 2;
+              const y = (pageHeight - imgHeight) / 2;
+
+
+              if (i !== 0) pdf.addPage();
+              pdf.addImage(img, 'JPEG', x, y, imgWidth, imgHeight);
+              resolve();
+            }
+          }
+          reader.readAsDataURL(file);
+        });
+      }
+
+
+      pdf.save('converted.pdf');
+      convertBtn.innerText = 'Convert to PDF';
+      convertBtn.disabled = false;
+    });
+  </script>
+</body>
+</html>
